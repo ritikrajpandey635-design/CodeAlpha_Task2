@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SocialHub</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+        }
+
+        .navbar {
+            background: #1877f2;
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            margin-left: 15px;
+        }
+
+        .container {
+            width: 600px;
+            max-width: 90%;
+            margin: 30px auto;
+        }
+
+        .welcome,
+        .post-box,
+        .post,
+        .users-box {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        textarea,
+        input {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        textarea {
+            height: 80px;
+            resize: none;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background: #1877f2;
+            color: white;
+            cursor: pointer;
+        }
+
+        .like-button {
+            background: #ff4d6d;
+        }
+
+        .follow-button {
+            background: #42b72a;
+        }
+
+        .post-user {
+            font-weight: bold;
+        }
+
+        .post-date {
+            color: #777;
+            font-size: 13px;
+        }
+
+        .comment {
+            background: #f1f3f5;
+            padding: 8px 12px;
+            margin-top: 8px;
+            border-radius: 8px;
+        }
+
+        .comment-user {
+            font-weight: bold;
+        }
+
+        .comment-form {
+            margin-top: 15px;
+        }
+
+        .user-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .user-row:last-child {
+            border-bottom: none;
+        }
+
+        .user-name {
+            font-weight: bold;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="navbar">
+        <h2>SocialHub</h2>
+
+        <div>
+            {% if user.is_authenticated %}
+                <span>Hello, {{ user.username }}</span>
+
+                <!-- Profile -->
+                <a href="{% url 'profile' %}">👤 Profile</a>
+
+                <!-- Logout -->
+                <a href="{% url 'logout' %}">Logout</a>
+
+            {% else %}
+                <a href="{% url 'login' %}">Login</a>
+                <a href="{% url 'register' %}">Register</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="container">
+
+        <div class="welcome">
+            <h1>Welcome to SocialHub 👋</h1>
+            <p>Connect, Share and Communicate</p>
+        </div>
+
+        {% if user.is_authenticated %}
+
+        <div class="post-box">
+            <h3>Create a Post</h3>
+
+            <form method="POST">
+                {% csrf_token %}
+
+                <textarea
+                    name="content"
+                    placeholder="What's on your mind?"
+                    required
+                ></textarea>
+
+                <button type="submit">Post</button>
+            </form>
+        </div>
+
+        <div class="users-box">
+            <h3>People to Follow 👥</h3>
+
+            {% for other_user in users %}
+
+                <div class="user-row">
+
+                    <span class="user-name">
+                        {{ other_user.username }}
+                    </span>
+
+                    <form method="POST">
+                        {% csrf_token %}
+
+                        <input
+                            type="hidden"
+                            name="follow_user_id"
+                            value="{{ other_user.id }}"
+                        >
+
+                        {% if user in other_user.followers.all %}
+                            <button type="submit" class="follow-button">
+                                Unfollow
+                            </button>
+                        {% else %}
+                            <button type="submit" class="follow-button">
+                                Follow
+                            </button>
+                        {% endif %}
+
+                    </form>
+
+                </div>
+
+            {% empty %}
+
+                <p>No other users available.</p>
+
+            {% endfor %}
+        </div>
+
+        {% endif %}
+
+        <h2>Recent Posts</h2>
+
+        {% for post in posts %}
+
+        <div class="post">
+
+            <div class="post-user">
+                {{ post.user.username }}
+            </div>
+
+            <div class="post-date">
+                {{ post.created_at }}
+            </div>
+
+            <p>{{ post.content }}</p>
+
+            <!-- Like -->
+            {% if user.is_authenticated %}
+                <form method="POST">
+                    {% csrf_token %}
+
+                    <input
+                        type="hidden"
+                        name="like_post_id"
+                        value="{{ post.id }}"
+                    >
+
+                    <button type="submit" class="like-button">
+                        ❤️ Like
+                    </button>
+                </form>
+            {% endif %}
+
+            <p>
+                ❤️ {{ post.like_set.count }} Likes
+            </p>
+
+            <hr>
+
+            <!-- Comments -->
+            <h4>Comments 💬</h4>
+
+            {% for comment in post.comment_set.all %}
+
+                <div class="comment">
+                    <span class="comment-user">
+                        {{ comment.user.username }}
+                    </span>
+                    : {{ comment.text }}
+                </div>
+
+            {% empty %}
+
+                <p>No comments yet.</p>
+
+            {% endfor %}
+
+            {% if user.is_authenticated %}
+
+            <form method="POST" class="comment-form">
+                {% csrf_token %}
+
+                <input
+                    type="hidden"
+                    name="post_id"
+                    value="{{ post.id }}"
+                >
+
+                <input
+                    type="text"
+                    name="comment_text"
+                    placeholder="Write a comment..."
+                    required
+                >
+
+                <button type="submit">Comment</button>
+            </form>
+
+            {% endif %}
+
+        </div>
+
+        {% empty %}
+
+        <div class="post">
+            <p>No posts yet. Be the first to post! 🎉</p>
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+</body>
+</html>
